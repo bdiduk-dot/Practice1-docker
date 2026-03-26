@@ -29,10 +29,10 @@ To generate this message, Docker took the following steps:
 ### Docker Compose + Latest npm
 ```text
 docker compose run --rm npm npm -v
-[npm version will be displayed here after first run]
+11.12.0
 
 docker compose run --rm npm node --version
-[node version will be displayed here after first run]
+v25.8.2
 ```
 
 ## Repository structure
