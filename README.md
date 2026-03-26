@@ -1,10 +1,25 @@
-# NestJS + PostgreSQL + Redis Docker Setup
+# Docker + NestJS + PostgreSQL + Redis Setup
 
 ## Student
 - Name: Дiдик Богдан
 - Group: 232/2 off
 
-## Практичне заняття №2 — NestJS + PostgreSQL + Redis
+---
+
+## 📋 Практичне заняття №1 — Docker + Docker Compose
+
+### Що виконано:
+- ✅ Docker Desktop встановлений та запущений (WSL2)
+- ✅ Docker Compose налаштований та перевірений
+- ✅ NestJS CLI встановлений в Dockerfile
+
+### Файли практики 1:
+- `Dockerfile` — базовий образ з node:20-alpine та @nestjs/cli
+- `docker-compose.yml` — конфігурація мережі та база
+
+---
+
+## 📋 Практичне заняття №2 — NestJS + PostgreSQL + Redis
 
 ### Структура репозиторію
 ```
@@ -93,6 +108,12 @@ Hello World!
 - Підключено `TypeOrmModule` з параметрами з env-змінних
 - Підключено `CacheModule` з Redis store для кеширування
 - `synchronize: true` для розробки (НЕ ВИКОРИСТОВУВАТИ У PRODUCTION)
+
+### Файли практики 2:
+- `src/` — NestJS проект з app.module.ts, app.controller.ts, main.ts
+- `docker-compose.yml` — розширена конфігурація з app, postgres, redis
+- `.env.example` — змінні оточення для PostgreSQL та Redis
+- `Dockerfile` — оновлено для NestJS розробки з npm start:dev
 
 ## Примітки
 - `.env.example` містить шаблон змінних оточення

@@ -8,9 +8,7 @@ import { AppService } from './app.service';
 
 @Module({
   imports: [
-    // Load environment variables
     ConfigModule.forRoot({ isGlobal: true }),
-    // PostgreSQL connection via TypeORM
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.POSTGRES_HOST || 'postgres',
@@ -21,7 +19,6 @@ import { AppService } from './app.service';
       entities: [],
       synchronize: true,
     }),
-    // Redis cache configuration
     CacheModule.registerAsync({
       isGlobal: true,
       useFactory: async () => ({
