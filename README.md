@@ -1,6 +1,6 @@
 ## Student
-- Name: [Your Full Name]
-- Group: [Your Group]
+- Name: Дiдик Богдан
+- Group: 232/2 off
 
 ## Docker Environment Setup
 
