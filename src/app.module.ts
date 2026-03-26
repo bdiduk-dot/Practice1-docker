@@ -3,6 +3,12 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
+import { Category } from './categories/category.entity';
+import { Product } from './products/product.entity';
+import { CategoriesModule } from './categories/categories.module';
+import { ProductsModule } from './products/products.module';
+import { CreateTables1774519795976 } from './migrations/1774519795976-CreateTables';
+import { AddIndexesToProducts1774520000000 } from './migrations/1774520000000-AddIndexesToProducts';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -16,8 +22,10 @@ import { AppService } from './app.service';
       username: process.env.POSTGRES_USER || 'nestuser',
       password: process.env.POSTGRES_PASSWORD || 'nestpassword',
       database: process.env.POSTGRES_DB || 'nestdb',
-      entities: [],
-      synchronize: true,
+      entities: [Category, Product],
+      synchronize: false,
+      migrationsRun: true,
+      migrations: [CreateTables1774519795976, AddIndexesToProducts1774520000000],
     }),
     CacheModule.registerAsync({
       isGlobal: true,
@@ -31,6 +39,8 @@ import { AppService } from './app.service';
         ttl: 60 * 1000,
       }),
     }),
+    CategoriesModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
