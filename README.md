@@ -6,6 +6,109 @@
 
 ---
 
+## 📋 Практичне заняття №4 — DTO + class-validator + Pipes
+
+### Структура репозиторію
+```
+.
+├── src/
+│   ├── categories/
+│   │   ├── dto/
+│   │   │   ├── create-category.dto.ts
+│   │   │   └── update-category.dto.ts
+│   │   ├── category.entity.ts
+│   │   ├── categories.module.ts
+│   │   ├── categories.service.ts
+│   │   └── categories.controller.ts
+│   ├── products/
+│   │   ├── dto/
+│   │   │   ├── create-product.dto.ts
+│   │   │   └── update-product.dto.ts
+│   │   ├── product.entity.ts
+│   │   ├── products.module.ts
+│   │   ├── products.service.ts
+│   │   └── products.controller.ts
+│   ├── common/
+│   │   └── pipes/
+│   │     └── trim.pipe.ts
+│   ├── migrations/
+│   ├── data-source.ts
+│   ├── main.ts
+│   └── app.module.ts
+├── Dockerfile
+├── docker-compose.yml
+└── README.md
+```
+
+### Запуск проекту
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+### Тест валідації — порожнє ім'я категорії
+```text
+{"message":["name must be longer than or equal to 2 characters"],"error":"Bad Request","statusCode":400}
+```
+
+### Тест валідації — від'ємна ціна продукту
+```text
+{"message":["price must not be less than 0.01"],"error":"Bad Request","statusCode":400}
+```
+
+### Тест валідації — зайве поле
+```text
+{"message":["property isAdmin should not exist"],"error":"Bad Request","statusCode":400}
+```
+
+### Тест TrimPipe
+```text
+{"id":1,"name":"Trimmed","description":null,"createdAt":"2026-04-22T09:01:16.197Z"}
+```
+
+### Тест валідне створення продукту
+```text
+{"id":1,"name":"Valid Product","description":null,"price":99.99,"stock":5,"isActive":true,"category":{"id":1},"createdAt":"2026-04-22T09:01:37.868Z","updatedAt":"2026-04-22T09:01:37.868Z"}
+```
+
+### Troubleshooting — типові проблеми
+1) "An unknown value was passed to the validate function"
+Симптоми: помилка при виклику POST/PATCH ендпоінтів.
+Що зробити:
+•    Переконатись, що class-transformer встановлений: docker compose run --rm app npm ls class-transformer
+•    Перевірити, що transform: true увімкнено в ValidationPipe
+•    Перезібрати образ: docker compose up --build
+
+2) Валідація не працює — будь-які дані проходять
+Симптоми: POST з порожнім тілом або невалідними даними повертає 201 замість 400.
+Що зробити:
+•    Перевірити, що ValidationPipe додано в main.ts: app.useGlobalPipes(...)
+•    Перевірити, що контролер використовує DTO-тип: @Body() dto: CreateProductDto (не body: any)
+•    Перевірити, що у tsconfig.json є: "emitDecoratorMetadata": true та "experimentalDecorators": true
+
+3) "Cannot find module './dto/create-category.dto'"
+Симптоми: помилка при компіляції TypeScript.
+Що зробити:
+•    Перевірити шлях: файл має бути в src/categories/dto/create-category.dto.ts
+•    Перевірити правильність імпорту в контролері та сервісі
+•    Перевірити, що ім'я файлу точно збігається (case-sensitive в Linux)
+
+4) "property isAdmin should not exist" — але я не надсилав isAdmin
+Симптоми: 400 помилка з несподіваним полем.
+Що зробити:
+•    Перевірити JSON в curl — можлива помилка в лапках або структурі
+•    Спробувати через Postman — буде видно точне тіло запиту
+•    Якщо потрібно тимчасово дозволити зайві поля — змінити forbidNonWhitelisted на false (але для здачі має бути true)
+
+5) TrimPipe не працює — пробіли залишаються
+Симптоми: name зберігається з пробілами.
+Що зробити:
+•    Перевірити порядок Pipes в main.ts: TrimPipe має бути ПЕРЕД ValidationPipe
+•    Перевірити, що TrimPipe імпортований правильно
+•    Перезапустити: docker compose restart app
+
+---
+
 ## 📋 Практичне заняття №3 — CRUD REST API для MiniShop: Entity, міграції, контролери
 
 ### Цілі практики
