@@ -1,34 +1,43 @@
-# MiniShop REST API — NestJS, PostgreSQL, Redis
+# MiniShop REST API — Практика 5 (JWT, Guards, RBAC)
 
 ## Студент
-- **Ім'я:** Дідик Богдан
-- **Група:** 232/2
+- Имя: Дідик Богдан
+- Группа: 232/2
 
-## Практичне заняття №4: DTO, class-validator, Pipes
-
-### Структура репозиторію
+## Запуск проекта
+```bash
+cp .env.example .env
+docker compose up --build
 ```
+
+## Структура репозитория
+```text
 .
 ├── src/
-│   ├── categories/
+│   ├── auth/
 │   │   ├── dto/
-│   │   │   ├── create-category.dto.ts
-│   │   │   └── update-category.dto.ts
-│   │   ├── category.entity.ts
-│   │   ├── categories.module.ts
-│   │   ├── categories.service.ts
-│   │   └── categories.controller.ts
-│   ├── products/
-│   │   ├── dto/
-│   │   │   ├── create-product.dto.ts
-│   │   │   └── update-product.dto.ts
-│   │   ├── product.entity.ts
-│   │   ├── products.module.ts
-│   │   ├── products.service.ts
-│   │   └── products.controller.ts
+│   │   │   ├── register.dto.ts
+│   │   │   └── login.dto.ts
+│   │   ├── auth.module.ts
+│   │   ├── auth.service.ts
+│   │   └── auth.controller.ts
+│   ├── users/
+│   │   ├── user.entity.ts
+│   │   ├── users.module.ts
+│   │   └── users.service.ts
 │   ├── common/
+│   │   ├── enums/
+│   │   │   └── role.enum.ts
+│   │   ├── guards/
+│   │   │   ├── jwt-auth.guard.ts
+│   │   │   └── roles.guard.ts
+│   │   ├── decorators/
+│   │   │   ├── current-user.decorator.ts
+│   │   │   └── roles.decorator.ts
 │   │   └── pipes/
 │   │     └── trim.pipe.ts
+│   ├── categories/
+│   ├── products/
 │   ├── migrations/
 │   ├── data-source.ts
 │   ├── main.ts
@@ -38,117 +47,104 @@
 └── README.md
 ```
 
-### Запуск проекту
+## API Endpoints
+| Method | URL | Auth | Role |
+|--------|-----|------|------|
+| POST | /auth/register | - | - |
+| POST | /auth/login | - | - |
+| GET | /api/categories | - | - |
+| POST | /api/categories | JWT | admin |
+| PATCH | /api/categories/:id | JWT | admin |
+| DELETE | /api/categories/:id | JWT | admin |
+| GET | /api/products | - | - |
+| GET | /api/products/:id | - | - |
+| POST | /api/products | JWT | admin |
+| PATCH | /api/products/:id | JWT | admin |
+| DELETE | /api/products/:id | JWT | admin |
+
+## Подготовка для тестов
+Сделать пользователя админом:
 ```bash
-cp .env.example .env
-docker compose up --build
+docker compose exec postgres psql -U nestuser -d nestdb -c "UPDATE users SET role = 'admin' WHERE email = 'admin5@test.com';"
 ```
 
-### Тест валідації — порожнє ім'я категорії
-```text
-HTTP/1.1 400 Bad Request
-X-Powered-By: Express
-Content-Type: application/json; charset=utf-8
-Content-Length: 104
-ETag: W/"68-QQoQMoGWo427YCpDKWhkpJ+XbE0"
-Date: Fri, 01 May 2026 09:03:40 GMT
-Connection: keep-alive
-Keep-Alive: timeout=5
+## Тесты (curl)
 
-{"message":["name must be longer than or equal to 2 characters"],"error":"Bad Request","statusCode":400}
+### 1) Регистрация пользователя
+Команда:
+```bash
+curl --% -s -X POST http://localhost:3000/auth/register -H "Content-Type: application/json" -d "{\"email\": \"admin5@test.com\", \"password\": \"password123\", \"name\": \"Admin\"}"
+```
+Ответ:
+```json
+{"id":1,"email":"admin5@test.com","name":"Admin","role":"user","createdAt":"2026-05-01T09:20:33.709Z"}
 ```
 
-### Тест валідації — від'ємна ціна продукту
-```text
-HTTP/1.1 400 Bad Request
-X-Powered-By: Express
-Content-Type: application/json; charset=utf-8
-Content-Length: 87
-ETag: W/"57-MJKZQ9pE6jw6kXj6cwcgLMW1I1I"
-Date: Fri, 01 May 2026 09:03:46 GMT
-Connection: keep-alive
-Keep-Alive: timeout=5
-
-{"message":["price must not be less than 0.01"],"error":"Bad Request","statusCode":400}
+### 2) Логин (получение токена)
+Команда:
+```bash
+curl --% -s -X POST http://localhost:3000/auth/login -H "Content-Type: application/json" -d "{\"email\": \"admin5@test.com\", \"password\": \"password123\"}"
+```
+Ответ:
+```json
+{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWRtaW41QHRlc3QuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzc3NjI3MjQ5LCJleHAiOjE3Nzc2MzA4NDl9.jwM59OD4oH1Yq_GvwGhkOLrW24s3AxGN2nfZ4ZqFETA"}
 ```
 
-### Тест валідації — зайве поле
-```text
-HTTP/1.1 400 Bad Request
-X-Powered-By: Express
-Content-Type: application/json; charset=utf-8
-Content-Length: 88
-ETag: W/"58-EYMM4JjPU5mHLuAIfjqOIhjlM34"
-Date: Fri, 01 May 2026 09:03:51 GMT
-Connection: keep-alive
-Keep-Alive: timeout=5
-
-{"message":["property isAdmin should not exist"],"error":"Bad Request","statusCode":400}
+### 3) 401 Unauthorized (без токена)
+Команда:
+```bash
+curl --% -s -X POST http://localhost:3000/api/products -H "Content-Type: application/json" -d "{\"name\": \"Hacked Product\", \"price\": 1}"
+```
+Ответ:
+```json
+{"message":"Missing authorization token","error":"Unauthorized","statusCode":401}
 ```
 
-### Тест TrimPipe
-```text
-HTTP/1.1 201 Created
-X-Powered-By: Express
-Content-Type: application/json; charset=utf-8
-Content-Length: 91
-ETag: W/"5b-kpeAf0oVAPnUZsuBfXUVxJW1ABI"
-Date: Fri, 01 May 2026 09:04:08 GMT
-Connection: keep-alive
-Keep-Alive: timeout=5
-
-{"id":3,"name":"Trimmed Example","description":null,"createdAt":"2026-05-01T09:04:08.755Z"}
+### 4) 403 Forbidden (роль user)
+Команда:
+```bash
+curl --% -s -X POST http://localhost:3000/api/products -H "Content-Type: application/json" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImVtYWlsIjoidXNlcjVAdGVzdC5jb20iLCJyb2xlIjoidXNlciIsImlhdCI6MTc3NzYyNzI1NCwiZXhwIjoxNzc3NjMwODU0fQ.564WiIoH6X9fTzOFhASE5lntkZ9jWf7Hjc0iYuTZZYo" -d "{\"name\": \"Blocked Product\", \"price\": 99}"
+```
+Ответ:
+```json
+{"message":"Insufficient permissions","error":"Forbidden","statusCode":403}
 ```
 
-### Тест валідне створення продукту
-```text
-HTTP/1.1 201 Created
-X-Powered-By: Express
-Content-Type: application/json; charset=utf-8
-Content-Length: 269
-ETag: W/"10d-vhHYq11iAFUTRWtu+FgRWIxSJLw"
-Date: Fri, 01 May 2026 09:04:17 GMT
-Connection: keep-alive
-Keep-Alive: timeout=5
-
-{"id":2,"name":"iPhone 16","description":null,"price":999.99,"stock":50,"isActive":true,"category":{"id":3,"name":"Trimmed Example","description":null,"createdAt":"2026-05-01T09:04:08.755Z"},"createdAt":"2026-05-01T09:04:17.336Z","updatedAt":"2026-05-01T09:04:17.336Z"}
+### 5) Успешное создание продукта (роль admin)
+Команда:
+```bash
+curl --% -s -X POST http://localhost:3000/api/products -H "Content-Type: application/json" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWRtaW41QHRlc3QuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzc3NjI3MjQ5LCJleHAiOjE3Nzc2MzA4NDl9.jwM59OD4oH1Yq_GvwGhkOLrW24s3AxGN2nfZ4ZqFETA" -d "{\"name\": \"MacBook Pro\", \"price\": 2499.99, \"stock\": 10}"
+```
+Ответ:
+```json
+{"id":3,"name":"MacBook Pro","description":null,"price":2499.99,"stock":10,"isActive":true,"createdAt":"2026-05-01T09:21:12.340Z","updatedAt":"2026-05-01T09:21:12.340Z"}
 ```
 
-Troubleshooting — типові проблеми
-1) "An unknown value was passed to the validate function"
-Симптоми: помилка при виклику POST/PATCH ендпоінтів.
-Що зробити:
-•   Переконатись, що class-transformer встановлений: docker compose run --rm app npm ls class-transformer
-•   Перевірити, що transform: true увімкнено в ValidationPipe
-•   Перезібрати образ: docker compose up --build
+## Troubleshooting
 
-2) Валідація не працює — будь-які дані проходять
-Симптоми: POST з порожнім тілом або невалідними даними повертає 201 замість 400.
-Що зробити:
-•   Перевірити, що ValidationPipe додано в main.ts: app.useGlobalPipes(...)
-•   Перевірити, що контролер використовує DTO-тип: @Body() dto: CreateProductDto (не body: any)
-•   Перевірити, що у tsconfig.json є: "emitDecoratorMetadata": true та "experimentalDecorators": true
+1) "Cannot read properties of undefined (reading 'role')" в RolesGuard
+- Проверьте порядок Guards: @UseGuards(JwtAuthGuard, RolesGuard)
+- Проверьте, что JwtAuthGuard записывает user в request
+- Проверьте, что JWT payload содержит role
 
-3) "Cannot find module './dto/create-category.dto'"
-Симптоми: помилка при компіляції TypeScript.
-Що зробити:
-•   Перевірити шлях: файл має бути в src/categories/dto/create-category.dto.ts
-•   Перевірити правильність імпорту в контролері та сервісі
-•   Перевірити, що ім'я файлу точно збігається (case-sensitive в Linux)
+2) "Nest can't resolve dependencies of the JwtAuthGuard"
+- Проверьте, что модуль импортирует AuthModule
+- Проверьте, что AuthModule exports JwtModule
+- Пересоберите контейнер: docker compose up --build
 
-4) "property isAdmin should not exist" — але я не надсилав isAdmin
-Симптоми: 400 помилка з несподіваним полем.
-Що зробити:
-•   Перевірити JSON в curl — можлива помилка в лапках або структурі
-•   Спробувати через Postman — буде видно точне тіло запиту
-•   Якщо потрібно тимчасово дозволити зайві поля — змінити forbidNonWhitelisted на false (але для здачі має бути true)
+3) "invalid signature" при verify
+- Проверьте, что JWT_SECRET одинаковый при генерации и проверке
+- После смены JWT_SECRET нужно логиниться заново
 
-5) TrimPipe не працює — пробіли залишаються
-Симптоми: name зберігається з пробілами.
-Що зробити:
-•   Перевірити порядок Pipes в main.ts: TrimPipe має бути ПЕРЕД ValidationPipe
-•   Перевірити, що TrimPipe імпортований правильно
-•   Перезапустити: docker compose restart app
+4) Роль изменилась в БД, но токен все еще user
+- Роль записывается в JWT при логине, нужен повторный логин
+- Проверка в БД: docker compose exec postgres psql -U nestuser -d nestdb -c "SELECT id, email, role FROM users;"
 
+5) "relation 'users' does not exist"
+- Проверьте, что миграция для users добавлена и применена
+- Проверьте, что migrationsRun: true
+- Перезапуск: docker compose down && docker compose up --build
 
-
+6) Ошибка типов bcrypt
+- Проверьте, что установлен @types/bcrypt
+- Используйте import * as bcrypt from 'bcrypt'
