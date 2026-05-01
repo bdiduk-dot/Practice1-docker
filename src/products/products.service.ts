@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Category } from '../categories/category.entity';
 import { Product } from './product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -10,6 +11,8 @@ export class ProductsService {
   constructor(
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
+    @InjectRepository(Category)
+    private readonly categoryRepo: Repository<Category>,
   ) {}
 
   async findAll(): Promise<Product[]> {
@@ -36,8 +39,10 @@ export class ProductsService {
       description: dto.description,
       price: dto.price,
       stock: dto.stock ?? 0,
-      category: dto.categoryId ? ({ id: dto.categoryId } as any) : undefined,
     });
+    if (dto.categoryId !== undefined) {
+      product.category = await this.getCategoryOrThrow(dto.categoryId);
+    }
     return this.productRepo.save(product);
   }
 
@@ -48,7 +53,7 @@ export class ProductsService {
     if (dto.price !== undefined) product.price = dto.price;
     if (dto.stock !== undefined) product.stock = dto.stock;
     if (dto.categoryId !== undefined) {
-      product.category = { id: dto.categoryId } as any;
+      product.category = await this.getCategoryOrThrow(dto.categoryId);
     }
     return this.productRepo.save(product);
   }
@@ -56,5 +61,15 @@ export class ProductsService {
   async remove(id: number): Promise<void> {
     const product = await this.findOne(id);
     await this.productRepo.remove(product);
+  }
+
+  private async getCategoryOrThrow(categoryId: number): Promise<Category> {
+    const category = await this.categoryRepo.findOne({
+      where: { id: categoryId },
+    });
+    if (!category) {
+      throw new NotFoundException(`Категорія з ID #${categoryId} не знайдена`);
+    }
+    return category;
   }
 }
