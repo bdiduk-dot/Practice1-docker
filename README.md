@@ -87,3 +87,21 @@ http://localhost:3000/api/docs
 curl.exe -s http://localhost:3000/api/products/999
 {"error":{"code":404,"message":"РџСЂРѕРґСѓРєС‚ Р· ID #999 РЅРµ Р·РЅР°Р№РґРµРЅРёР№","traceId":"529f8192-0923-4ec3-95cd-6dd7f5f7f101"},"timestamp":"2026-05-01T09:49:24.953Z"}
 ```
+
+## Практичне заняття №7: Redis кешування + Query параметри + Pagination
+
+### Нові можливості
+- **Пагінація**: page та pageSize (max 100).
+- **Сортування**: sort (name, price, stock, createdAt) та order (asc, desc).
+- **Фільтрація**: categoryId, minPrice, maxPrice.
+- **Пошук**: search (по назві, ILIKE).
+- **Redis Кешування**: Список продуктів кешується на 60 секунд. Кеш автоматично очищується при створенні/оновленні/видаленні продуктів.
+
+### Приклад запиту
+GET /api/products?page=1&pageSize=10&categoryId=1&sort=price&order=asc&search=iPhone
+
+### Сідінг даних
+Для тестування додано скрипт наповнення бази:
+\\\ash
+docker compose run --rm app npm run seed
+\\\`nВін створює 3 категорії та 30 тестових продуктів.

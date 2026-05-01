@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheModule } from '@nestjs/cache-manager';
+import { KeyvAdapter } from 'cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { Category } from './categories/category.entity';
 import { Product } from './products/product.entity';
@@ -15,7 +16,7 @@ import { AddIndexesToProducts1774520000000 } from './migrations/1774520000000-Ad
 import { CreateUsers1777700000000 } from './migrations/1777700000000-CreateUsers';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-
+ 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -38,13 +39,14 @@ import { AppService } from './app.service';
     CacheModule.registerAsync({
       isGlobal: true,
       useFactory: async () => ({
-        store: await redisStore({
-          socket: {
-            host: process.env.REDIS_HOST || 'redis',
-            port: parseInt(process.env.REDIS_PORT || '6379', 10),
-          },
-        }),
-        ttl: 60 * 1000,
+        stores: [
+          new KeyvAdapter(
+            await redisStore({
+              url: `redis://${process.env.REDIS_HOST || 'redis'}:6379`,
+            }),
+          ),
+        ],
+        ttl: 60,
       }),
     }),
     UsersModule,
