@@ -1,30 +1,17 @@
-# MiniShop REST API — Практика 5 (JWT, Guards, RBAC)
-
-## Студент
-- Имя: Дідик Богдан
-- Группа: 232/2
-
-## Запуск проекта
-```bash
-cp .env.example .env
-docker compose up --build
+## Student
+- Name: Дідик Богдан
+- Group: 232/2
+ 
+## Практичне заняття №6 — Interceptors + Exception Filters + Swagger
+ 
+### Структура репозиторію
 ```
-
-## Структура репозитория
-```text
 .
 ├── src/
-│   ├── auth/
-│   │   ├── dto/
-│   │   │   ├── register.dto.ts
-│   │   │   └── login.dto.ts
-│   │   ├── auth.module.ts
-│   │   ├── auth.service.ts
-│   │   └── auth.controller.ts
-│   ├── users/
-│   │   ├── user.entity.ts
-│   │   ├── users.module.ts
-│   │   └── users.service.ts
+│   ├── auth/ ...
+│   ├── users/ ...
+│   ├── categories/ ...
+│   ├── products/ ...
 │   ├── common/
 │   │   ├── enums/
 │   │   │   └── role.enum.ts
@@ -34,117 +21,69 @@ docker compose up --build
 │   │   ├── decorators/
 │   │   │   ├── current-user.decorator.ts
 │   │   │   └── roles.decorator.ts
+│   │   ├── interceptors/
+│   │   │   ├── logging.interceptor.ts
+│   │   │   └── transform.interceptor.ts
+│   │   ├── filters/
+│   │   │   └── http-exception.filter.ts
 │   │   └── pipes/
-│   │     └── trim.pipe.ts
-│   ├── categories/
-│   ├── products/
+│   │   	└── trim.pipe.ts
 │   ├── migrations/
-│   ├── data-source.ts
 │   ├── main.ts
 │   └── app.module.ts
+├── swagger-screenshot.png
 ├── Dockerfile
 ├── docker-compose.yml
 └── README.md
 ```
-
-## API Endpoints
-| Method | URL | Auth | Role |
-|--------|-----|------|------|
-| POST | /auth/register | - | - |
-| POST | /auth/login | - | - |
-| GET | /api/categories | - | - |
-| POST | /api/categories | JWT | admin |
-| PATCH | /api/categories/:id | JWT | admin |
-| DELETE | /api/categories/:id | JWT | admin |
-| GET | /api/products | - | - |
-| GET | /api/products/:id | - | - |
-| POST | /api/products | JWT | admin |
-| PATCH | /api/products/:id | JWT | admin |
-| DELETE | /api/products/:id | JWT | admin |
-
-## Подготовка для тестов
-Сделать пользователя админом:
+ 
+### Запуск проекту
 ```bash
-docker compose exec postgres psql -U nestuser -d nestdb -c "UPDATE users SET role = 'admin' WHERE email = 'admin5@test.com';"
+cp .env.example .env
+docker compose up --build
 ```
-
-## Тесты (curl)
-
-### 1) Регистрация пользователя
-Команда:
-```bash
-curl --% -s -X POST http://localhost:3000/auth/register -H "Content-Type: application/json" -d "{\"email\": \"admin5@test.com\", \"password\": \"password123\", \"name\": \"Admin\"}"
-```
-Ответ:
+ 
+### Swagger UI
+http://localhost:3000/api/docs
+ 
+![Swagger](swagger-screenshot.png)
+ 
+### Формат успішної відповіді
 ```json
-{"id":1,"email":"admin5@test.com","name":"Admin","role":"user","createdAt":"2026-05-01T09:20:33.709Z"}
+{
+  "data": {
+    "id": 1,
+    "name": "iPhone 16",
+    "price": 999.99
+  },
+  "statusCode": 200,
+  "timestamp": "2026-05-01T09:49:12.929Z"
+}
 ```
-
-### 2) Логин (получение токена)
-Команда:
-```bash
-curl --% -s -X POST http://localhost:3000/auth/login -H "Content-Type: application/json" -d "{\"email\": \"admin5@test.com\", \"password\": \"password123\"}"
-```
-Ответ:
+ 
+### Формат помилки
 ```json
-{"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWRtaW41QHRlc3QuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzc3NjI3MjQ5LCJleHAiOjE3Nzc2MzA4NDl9.jwM59OD4oH1Yq_GvwGhkOLrW24s3AxGN2nfZ4ZqFETA"}
+{
+  "error": {
+    "code": 400,
+    "message": "Validation failed",
+    "details": [
+      "name must be longer than or equal to 2 characters"
+    ],
+    "traceId": "0b26ba0d-e16e-438a-a1b8-0dd234443c99"
+  },
+  "timestamp": "2026-05-01T09:49:32.104Z"
+}
 ```
-
-### 3) 401 Unauthorized (без токена)
-Команда:
-```bash
-curl --% -s -X POST http://localhost:3000/api/products -H "Content-Type: application/json" -d "{\"name\": \"Hacked Product\", \"price\": 1}"
+ 
+### Приклад логів (LoggingInterceptor)
+```text
+[Nest] 29  - 05/01/2026, 9:49:09 AM     LOG [HTTP] GET /api/products — 200 — 18ms
+[Nest] 29  - 05/01/2026, 9:49:12 AM     LOG [HTTP] GET /api/products — 200 — 2ms
 ```
-Ответ:
-```json
-{"message":"Missing authorization token","error":"Unauthorized","statusCode":401}
+ 
+### Тест помилки з traceId
+```text
+curl.exe -s http://localhost:3000/api/products/999
+{"error":{"code":404,"message":"Продукт з ID #999 не знайдений","traceId":"529f8192-0923-4ec3-95cd-6dd7f5f7f101"},"timestamp":"2026-05-01T09:49:24.953Z"}
 ```
-
-### 4) 403 Forbidden (роль user)
-Команда:
-```bash
-curl --% -s -X POST http://localhost:3000/api/products -H "Content-Type: application/json" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIsImVtYWlsIjoidXNlcjVAdGVzdC5jb20iLCJyb2xlIjoidXNlciIsImlhdCI6MTc3NzYyNzI1NCwiZXhwIjoxNzc3NjMwODU0fQ.564WiIoH6X9fTzOFhASE5lntkZ9jWf7Hjc0iYuTZZYo" -d "{\"name\": \"Blocked Product\", \"price\": 99}"
-```
-Ответ:
-```json
-{"message":"Insufficient permissions","error":"Forbidden","statusCode":403}
-```
-
-### 5) Успешное создание продукта (роль admin)
-Команда:
-```bash
-curl --% -s -X POST http://localhost:3000/api/products -H "Content-Type: application/json" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEsImVtYWlsIjoiYWRtaW41QHRlc3QuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzc3NjI3MjQ5LCJleHAiOjE3Nzc2MzA4NDl9.jwM59OD4oH1Yq_GvwGhkOLrW24s3AxGN2nfZ4ZqFETA" -d "{\"name\": \"MacBook Pro\", \"price\": 2499.99, \"stock\": 10}"
-```
-Ответ:
-```json
-{"id":3,"name":"MacBook Pro","description":null,"price":2499.99,"stock":10,"isActive":true,"createdAt":"2026-05-01T09:21:12.340Z","updatedAt":"2026-05-01T09:21:12.340Z"}
-```
-
-## Troubleshooting
-
-1) "Cannot read properties of undefined (reading 'role')" в RolesGuard
-- Проверьте порядок Guards: @UseGuards(JwtAuthGuard, RolesGuard)
-- Проверьте, что JwtAuthGuard записывает user в request
-- Проверьте, что JWT payload содержит role
-
-2) "Nest can't resolve dependencies of the JwtAuthGuard"
-- Проверьте, что модуль импортирует AuthModule
-- Проверьте, что AuthModule exports JwtModule
-- Пересоберите контейнер: docker compose up --build
-
-3) "invalid signature" при verify
-- Проверьте, что JWT_SECRET одинаковый при генерации и проверке
-- После смены JWT_SECRET нужно логиниться заново
-
-4) Роль изменилась в БД, но токен все еще user
-- Роль записывается в JWT при логине, нужен повторный логин
-- Проверка в БД: docker compose exec postgres psql -U nestuser -d nestdb -c "SELECT id, email, role FROM users;"
-
-5) "relation 'users' does not exist"
-- Проверьте, что миграция для users добавлена и применена
-- Проверьте, что migrationsRun: true
-- Перезапуск: docker compose down && docker compose up --build
-
-6) Ошибка типов bcrypt
-- Проверьте, что установлен @types/bcrypt
-- Используйте import * as bcrypt from 'bcrypt'
