@@ -1,21 +1,39 @@
 import { DataSource } from 'typeorm';
 import * as dotenv from 'dotenv';
- 
+import * as bcrypt from 'bcrypt';
+
 dotenv.config();
- 
+
 const ds = new DataSource({
   type: 'postgres',
-  host: process.env.POSTGRES_HOST,
+  host: process.env.POSTGRES_HOST || 'localhost',
   port: parseInt(process.env.POSTGRES_PORT ?? '5432', 10),
-  username: process.env.POSTGRES_USER,
-  password: process.env.POSTGRES_PASSWORD,
-  database: process.env.POSTGRES_DB,
+  username: process.env.POSTGRES_USER || 'nestuser',
+  password: process.env.POSTGRES_PASSWORD || 'nestpassword',
+  database: process.env.POSTGRES_DB || 'nestdb',
 });
- 
+
 async function seed() {
   await ds.initialize();
- 
+
+  // Користувачі
+  console.log('Seeding users...');
+  const salt = await bcrypt.genSalt();
+  const adminPass = await bcrypt.hash('admin123', salt);
+  const userPass = await bcrypt.hash('user123', salt);
+
+  await ds.query(
+    `INSERT INTO users (email, "passwordHash", name, role)
+     VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)
+     ON CONFLICT (email) DO NOTHING`,
+    [
+      'admin@test.com', adminPass, 'Admin User', 'admin',
+      'user@test.com', userPass, 'Regular User', 'user'
+    ],
+  );
+
   // Категорії
+  console.log('Seeding categories...');
   const cats = ['Electronics', 'Accessories', 'Clothing'];
   const catIds: Record<string, number> = {};
   
@@ -28,8 +46,9 @@ async function seed() {
     );
     catIds[name] = res[0].id;
   }
- 
+
   // Продукти
+  console.log('Seeding products...');
   const products = [
     { name: 'iPhone 16', price: 999, stock: 50, cat: 'Electronics' },
     { name: 'Galaxy S24', price: 849, stock: 40, cat: 'Electronics' },
@@ -42,8 +61,7 @@ async function seed() {
     { name: 'T-Shirt Dev', price: 25, stock: 200, cat: 'Clothing' },
     { name: 'Hoodie NestJS', price: 55, stock: 75, cat: 'Clothing' },
   ];
- 
-  // Додати 30 записів (3 рази по 10)
+
   for (let i = 0; i < 3; i++) {
     for (const p of products) {
       const suffix = i > 0 ? ` v${i + 1}` : '';
@@ -57,9 +75,9 @@ async function seed() {
       );
     }
   }
- 
-  console.log('Seed complete: 3 categories, 30 products');
+
+  console.log('Seed complete: 2 users, 3 categories, 30 products');
   await ds.destroy();
 }
- 
+
 seed().catch(console.error);
